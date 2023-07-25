@@ -1,0 +1,40 @@
+# The host naming is as following:
+# monroe_nodes = Manager nodes
+# monet_nodes = worker nodes
+#
+# This is just my naming scheme in Docker swarm, but feel free to just use whatever.
+
+---
+- name: Backup existing configs - Upload and test new configs and rebuild switch to them, with a reboot at the end
+  hosts: monroe_nodes monet_nodes
+  become: yes
+
+  tasks:
+    - name: Download backups of existing configuration.nix files
+      ansible.builtin.fetch:
+        src: /etc/nixos/configuration.nix
+        # configuration.nix will be download from remote onto the current folder, and with a date scheme of Day-Month-Year kl Hour:Minute
+        # Final format: ./backup_configs/hostname-25-07-2023 kl 15:19
+        dest: ./backup_configs/{{ansible_hostname}}-{{ '%d-%m-%Y kl %H:%M' | strftime }}/configuration.nix
+        flat: yes
+
+    - name: Upload local configuration.nix to remotes
+      ansible.builtin.copy:
+        src: ./configuration.nix
+        dest: /etc/nixos/configuration.nix
+        # A backup is made on each remote as well. Might remove this later.
+        backup: yes
+
+    - name: Test config
+      ansible.builtin.shell:
+        cmd: nixos-rebuild test
+
+    - name: rebuild switch, if test succesful
+      ansible.builtin.shell:
+        cmd: nixos-rebuild switch
+
+# To make the Ansible reboot module work for NixOS
+    - name: Reboot remotes for full config initialization
+      ansible.builtin.reboot:
+        search_paths:
+          - '/run/current-system/sw/bin'
