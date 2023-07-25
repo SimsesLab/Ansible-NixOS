@@ -1,4 +1,4 @@
-# Ansible playbook for my NixOS cluster
+# Ansible playbook for updating configuration.nix on my NixOS cluster nodes
 ### This will download the current configuration.nix files from each node as a backup, then upload a common configuration file and test it, and switching to it and rebooting if it passes.
 ---
 This is the host names I use in Docker swarm:
